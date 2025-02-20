@@ -3,35 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WebRTC Camera</title>
+    <title>Object Detection</title>
+    <style>
+        body { text-align: center; }
+        img { border: 5px solid green; } /* Default green outline */
+    </style>
 </head>
 <body>
-    <h1>WebRTC Live Camera</h1>
-    <video id="video" autoplay playsinline></video>
-    <button onclick="start()">Start Streaming</button>
+    <h1>Real-Time Object Detection</h1>
+    <img id="video-feed" src="{{ url_for('video_feed') }}" />
 
     <script>
-        async function start() {
-            const pc = new RTCPeerConnection();
-            const video = document.getElementById("video");
+        const videoFeed = document.getElementById('video-feed');
 
-            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
-            stream.getTracks().forEach(track => pc.addTrack(track, stream));
-            video.srcObject = stream;
+        // Check the border color based on image src change
+        setInterval(() => {
+            fetch("{{ url_for('video_feed') }}")
+                .then(response => response.blob())
+                .then(blob => {
+                    const imgURL = URL.createObjectURL(blob);
+                    videoFeed.src = imgURL;
 
-            const offer = await pc.createOffer();
-            await pc.setLocalDescription(offer);
+                    // Change border color based on detected object
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+                    const img = new Image();
+                    img.onload = function() {
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        let pixelData = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+                        let redCount = 0, greenCount = 0;
 
-            const response = await fetch("/offer", {
-                method: "POST",
-                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type }),
-                headers: { "Content-Type": "application/json" }
-            });
+                        for (let i = 0; i < pixelData.length; i += 4) {
+                            let r = pixelData[i];
+                            let g = pixelData[i + 1];
+                            let b = pixelData[i + 2];
 
-            const answer = await response.json();
-            await pc.setRemoteDescription(new RTCSessionDescription(answer));
-        }
+                            if (r > 200 && g < 100 && b < 100) {
+                                redCount++;
+                            } else if (g > 200 && r < 100 && b < 100) {
+                                greenCount++;
+                            }
+                        }
+
+                        // Change border color based on detection
+                        videoFeed.style.borderColor = redCount > greenCount ? "red" : "green";
+                    };
+                    img.src = imgURL;
+                });
+        }, 500);
     </script>
 </body>
 </html>
+
 
