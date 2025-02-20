@@ -1,9 +1,11 @@
 from flask import Flask, render_template_string, Response
 import cv2
-import threading
 import os
 
 app = Flask(__name__)
+
+# CHANGE THIS: Set your mobile IP Webcam URL
+MOBILE_CAM_URL = "http://192.0.0.4:8080"
 
 HTML_PAGE = """
 <!DOCTYPE html>
@@ -11,12 +13,12 @@ HTML_PAGE = """
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Detection</title>
+    <title>Mobile Camera Stream</title>
 </head>
 <body>
     <h1>Click Below to Start Object Detection</h1>
     <a href="/video_feed" target="_blank">
-        <button>Open Camera & Detect Objects</button>
+        <button>Open Mobile Camera</button>
     </a>
 </body>
 </html>
@@ -27,17 +29,16 @@ def home():
     return render_template_string(HTML_PAGE)
 
 def generate_frames():
-    cap = cv2.VideoCapture(0)  # Open webcam
+    cap = cv2.VideoCapture(MOBILE_CAM_URL)  # Use Mobile Camera Stream
+
     if not cap.isOpened():
-        print("Error: Could not open webcam.")
+        print("Error: Could not open mobile camera stream.")
         return
 
     while True:
         success, frame = cap.read()
         if not success:
             break
-
-        # Object detection can be added here
 
         _, buffer = cv2.imencode('.jpg', frame)
         frame = buffer.tobytes()
