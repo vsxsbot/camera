@@ -3,12 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Object Detection</title>
+    <title>WebRTC Camera</title>
 </head>
 <body>
-    <h1>Click Below to Start Object Detection</h1>
-    <a href="/start-detection" target="_blank">
-        <button>Open Camera & Detect Objects</button>
-    </a>
+    <h1>WebRTC Live Camera</h1>
+    <video id="video" autoplay playsinline></video>
+    <button onclick="start()">Start Streaming</button>
+
+    <script>
+        async function start() {
+            const pc = new RTCPeerConnection();
+            const video = document.getElementById("video");
+
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+            stream.getTracks().forEach(track => pc.addTrack(track, stream));
+            video.srcObject = stream;
+
+            const offer = await pc.createOffer();
+            await pc.setLocalDescription(offer);
+
+            const response = await fetch("/offer", {
+                method: "POST",
+                body: JSON.stringify({ sdp: pc.localDescription.sdp, type: pc.localDescription.type }),
+                headers: { "Content-Type": "application/json" }
+            });
+
+            const answer = await response.json();
+            await pc.setRemoteDescription(new RTCSessionDescription(answer));
+        }
+    </script>
 </body>
 </html>
+
