@@ -1,5 +1,6 @@
 from flask import Flask, render_template_string
 import subprocess
+import threading
 import cv2
 
 app = Flask(__name__)
@@ -27,22 +28,21 @@ def home():
 
 @app.route('/start-detection')
 def start_detection():
-    subprocess.Popen(["python", "-c", detect_objects_code])  # Run object detection
-    return "Object Detection Started! Check your camera window."
+    thread = threading.Thread(target=detect_objects)
+    thread.start()
+    return "✅ Object Detection Started! Check your camera window."
 
-detect_objects_code = """
-import cv2
-cap = cv2.VideoCapture(0)
-while True:
-    ret, frame = cap.read()
-    if not ret:
-        break
-    cv2.imshow("Object Detection", frame)
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
-cap.release()
-cv2.destroyAllWindows()
-"""
+def detect_objects():
+    cap = cv2.VideoCapture(0)  # Open Camera
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+        cv2.imshow("Object Detection", frame)
+        if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to exit
+            break
+    cap.release()
+    cv2.destroyAllWindows()
 
 if __name__ == '__main__':
     app.run(debug=True)
