@@ -1,7 +1,7 @@
-from flask import Flask, render_template_string
-import subprocess
-import threading
+from flask import Flask, render_template_string, Response
 import cv2
+import threading
+import os
 
 app = Flask(__name__)
 
@@ -15,7 +15,7 @@ HTML_PAGE = """
 </head>
 <body>
     <h1>Click Below to Start Object Detection</h1>
-    <a href="/start-detection" target="_blank">
+    <a href="/video_feed" target="_blank">
         <button>Open Camera & Detect Objects</button>
     </a>
 </body>
@@ -26,23 +26,30 @@ HTML_PAGE = """
 def home():
     return render_template_string(HTML_PAGE)
 
-@app.route('/start-detection')
-def start_detection():
-    thread = threading.Thread(target=detect_objects)
-    thread.start()
-    return "✅ Object Detection Started! Check your camera window."
+def generate_frames():
+    cap = cv2.VideoCapture(0)  # Open webcam
+    if not cap.isOpened():
+        print("Error: Could not open webcam.")
+        return
 
-def detect_objects():
-    cap = cv2.VideoCapture(0)  # Open Camera
     while True:
-        ret, frame = cap.read()
-        if not ret:
+        success, frame = cap.read()
+        if not success:
             break
-        cv2.imshow("Object Detection", frame)
-        if cv2.waitKey(1) & 0xFF == ord('q'):  # Press 'q' to exit
-            break
+
+        # Object detection can be added here
+
+        _, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
     cap.release()
-    cv2.destroyAllWindows()
+
+@app.route('/video_feed')
+def video_feed():
+    return Response(generate_frames(), mimetype='multipart/x-mixed-replace; boundary=frame')
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
