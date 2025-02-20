@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Object Detection</title>
+</head>
+<body>
+    <h1>Click Below to Start Object Detection</h1>
+    <a href="/start-detection" target="_blank">
+        <button>Open Camera & Detect Objects</button>
+    </a>
+</body>
+</html>
